@@ -9,8 +9,8 @@ import re
 EXCEL_PATH = r"01 IST INT 16-31 CALISMA PROGRAMI.xlsx"
 STAFF_NAME = "ADEM AKSU"
 
-BOT_TOKEN = "8155325332:AAEhmV2zN0HRRcUSeekBDtZprVc2E1XmPbY"
-CHAT_ID = "1887053972"
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
 
 # ============================================
 
@@ -114,4 +114,5 @@ async def main():
 
 
 asyncio.run(main())
+
 
