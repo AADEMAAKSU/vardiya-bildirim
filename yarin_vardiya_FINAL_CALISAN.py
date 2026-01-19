@@ -6,7 +6,7 @@ import re
 
 # ================== AYARLAR ==================
 
-EXCEL_PATH = r"C:\Users\user\Desktop\Yeni klasör (4)\01 IST INT 16-31 CALISMA PROGRAMI.xlsx"
+EXCEL_PATH = r"01 IST INT 16-31 CALISMA PROGRAMI.xlsx"
 STAFF_NAME = "ADEM AKSU"
 
 BOT_TOKEN = "8155325332:AAEhmV2zN0HRRcUSeekBDtZprVc2E1XmPbY"
@@ -114,3 +114,4 @@ async def main():
 
 
 asyncio.run(main())
+
