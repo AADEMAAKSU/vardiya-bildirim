@@ -1,0 +1,36 @@
+name: Vardiya Bildirim
+
+on:
+  schedule:
+    - cron: "0 15 * * *"   # UTC 15:00 = Türkiye 18:00
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Gerekli paketler
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas openpyxl python-telegram-bot requests
+
+      - name: Vardiya dosyasını indir
+        env:
+          GSS_TOKEN: ${{ secrets.GSS_TOKEN }}
+        run: |
+          python download_shift.py
+
+      - name: Telegram bildirimi
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+        run: |
+          python yarin_vardiya_FINAL_CALISAN.py
