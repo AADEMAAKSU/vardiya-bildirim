@@ -17,7 +17,8 @@ AUTHORIZE_URL = (
 
 TOKEN_URL = "https://api-gss.gohub.aero/auth/with-code"
 
-NOTIFICATION_API = "https://api-gss.gohub.aero/notification-service"
+# 🔒 SABİT VE ÇALIŞAN ENDPOINT
+DOWNLOAD_URL = "https://api-gss.gohub.aero/correspondence/638539/attachment/42015"
 
 OUTPUT_FILE = "vardiya.xlsx"
 
@@ -71,48 +72,17 @@ if not access_token:
 
 auth_headers = {"Authorization": f"Bearer {access_token}"}
 
-# 5️⃣ NOTIFICATION SERVICE → BİLDİRİMLER
-notif_resp = session.get(NOTIFICATION_API, headers=auth_headers)
-if notif_resp.status_code != 200:
-    raise Exception("❌ Notification API alınamadı")
-
-data = notif_resp.json().get("data", [])
-if not data:
-    raise Exception("❌ Bildirim bulunamadı")
-
-# 6️⃣ ATTACHMENT OLANLARI BUL
-attachments = [
-    n for n in data
-    if n.get("attachmentId") and n.get("correspondenceId")
-]
-
-if not attachments:
-    raise Exception("❌ Attachment içeren bildirim yok")
-
-# 7️⃣ EN GÜNCEL BİLDİRİM (ilk sıradaki)
-latest = attachments[0]
-
-correspondence_id = latest["correspondenceId"]
-attachment_id = latest["attachmentId"]
-
-download_url = (
-    f"https://api-gss.gohub.aero/"
-    f"correspondence/{correspondence_id}/attachment/{attachment_id}"
-)
-
-print("📎 Kullanılan link:", download_url)
-
-# 8️⃣ DOSYAYI İNDİR
-file_response = session.get(download_url, headers=auth_headers)
+# 5️⃣ DOSYAYI İNDİR
+file_response = session.get(DOWNLOAD_URL, headers=auth_headers)
 if file_response.status_code != 200:
     raise Exception(f"❌ Dosya indirilemedi: {file_response.status_code}")
 
 with open(OUTPUT_FILE, "wb") as f:
     f.write(file_response.content)
 
-# 9️⃣ KANIT
+# 6️⃣ DEĞİŞİM KONTROLÜ (HASH)
 file_hash = hashlib.md5(file_response.content).hexdigest()
-print("✅ DOSYA İNDİRİLDİ")
-print("📦 HASH:", file_hash)
-print("📦 BOYUT:", len(file_response.content))
+print("📦 DOSYA HASH:", file_hash)
+print("📦 DOSYA BOYUTU:", len(file_response.content))
 print("🕒 ZAMAN (UTC):", datetime.utcnow())
+print("✅ DOSYA BAŞARIYLA İNDİRİLDİ")
