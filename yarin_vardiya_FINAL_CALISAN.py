@@ -17,7 +17,15 @@ CHAT_ID = os.environ["CHAT_ID"]
 # ============================================
 
 
-def parse_flights(text):
+def parse_flights(text: str) -> str:
+    """
+    İçerik hücresinde birden fazla Flight varsa ayıklar.
+    Örnek hücre:
+    Flight:TK 1991,Task:INT AVR.OKEYLİ Flight:TK 1995,Task:INT AVR.OKEYLİ
+    """
+    if not text or text.lower() == "nan":
+        return ""
+
     results = []
     parts = re.split(r'(?=Flight:)', text)
 
@@ -29,20 +37,20 @@ def parse_flights(text):
         flight = re.search(r'Flight:\s*([A-Z0-9 ]+)', part)
         task = re.search(r'Task:\s*([A-Z0-9\.\-İIÖŞĞÜÇ ]+)', part)
 
-        block = ""
+        block = []
         if flight:
-            block += f"✈️ Flight: {flight.group(1).strip()}\n"
+            block.append(f"✈️ Flight: {flight.group(1).strip()}")
         if task:
-            block += f"🛠 Task: {task.group(1).strip()}"
+            block.append(f"🛠 Task: {task.group(1).strip()}")
 
         if block:
-            results.append(block.strip())
+            results.append("\n".join(block))
 
     return "\n\n".join(results)
 
 
 async def main():
-    # 🇹🇷 TÜRKİYE SAATİNE SABİTLE
+    # 🇹🇷 TÜRKİYE SAATİ
     now_tr = datetime.now(ZoneInfo("Europe/Istanbul"))
     tomorrow = now_tr + timedelta(days=1)
     target_day = tomorrow.day
@@ -62,9 +70,8 @@ async def main():
 
     header_row = raw.iloc[header_row_index]
 
-    # 🎯 HEDEF GÜNÜN SÜTUNUNU BUL (GARANTİLİ YÖNTEM)
+    # 🎯 HEDEF GÜNÜN SÜTUNUNU BUL (GÜN NUMARASINA GÖRE)
     vardiya_col = None
-
     for col_idx in range(1, len(header_row)):
         match = re.search(r'\b(\d{1,2})\b', str(header_row[col_idx]))
         if match and int(match.group(1)) == target_day:
@@ -74,8 +81,6 @@ async def main():
     if vardiya_col is None:
         print("❌ Hedef gün için sütun bulunamadı")
         return
-
-    icerik_col = vardiya_col + 1  # içerik her zaman sağ sütun
 
     # Personel satırını bul
     staff_row = None
@@ -88,8 +93,16 @@ async def main():
         print("❌ Personel bulunamadı")
         return
 
+    # 🧩 VARDİYA HÜCRESİ
     vardiya_cell = str(staff_row[vardiya_col]).strip()
-    icerik_cell = str(staff_row[icerik_col]).strip() if icerik_col < len(staff_row) else ""
+
+    # 📋 İÇERİK HÜCRESİNİ DİNAMİK BUL
+    icerik_cell = ""
+    for col in range(vardiya_col + 1, len(staff_row)):
+        cell_text = str(staff_row[col]).strip()
+        if "Flight:" in cell_text:
+            icerik_cell = cell_text
+            break
 
     # Vardiya bilgisi
     words = vardiya_cell.split()
@@ -98,8 +111,12 @@ async def main():
 
     detay = parse_flights(icerik_cell)
 
+    # 📩 MESAJ OLUŞTUR
     if vardiya.lower() == "off":
-        message = f"📅 Yarın ({tomorrow.strftime('%d %B')})\n😴 OFF’sun"
+        message = (
+            f"📅 Yarın ({tomorrow.strftime('%d %B')})\n"
+            f"😴 OFF’sun"
+        )
     else:
         message = (
             f"📅 Yarın ({tomorrow.strftime('%d %B')})\n"
