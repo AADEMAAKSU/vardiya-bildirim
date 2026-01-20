@@ -7,7 +7,7 @@ import re
 
 # ================== AYARLAR ==================
 
-EXCEL_PATH = r"01 IST INT 16-31 CALISMA PROGRAMI.xlsx"
+EXCEL_PATH = r"vardiya.xlsx"
 STAFF_NAME = "ADEM AKSU"
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -115,6 +115,7 @@ async def main():
 
 
 asyncio.run(main())
+
 
 
 
