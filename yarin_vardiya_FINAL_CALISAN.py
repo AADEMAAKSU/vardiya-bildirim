@@ -18,9 +18,6 @@ CHAT_ID = os.environ["CHAT_ID"]
 
 
 def parse_flights(text: str) -> str:
-    """
-    İçerik hücresinde birden fazla Flight varsa ayıklar.
-    """
     if not text or text.lower() == "nan":
         return ""
 
@@ -63,22 +60,22 @@ async def main():
             break
 
     if header_row_index is None:
-        print("❌ STAFF satırı bulunamadı")
         return
 
     header_row = raw.iloc[header_row_index]
 
-    # 🎯 Hedef günün sütununu bul
-    vardiya_col = None
+    # 🎯 Aynı güne ait TÜM sütunları bul
+    day_cols = []
     for col_idx in range(1, len(header_row)):
         match = re.search(r'\b(\d{1,2})\b', str(header_row[col_idx]))
         if match and int(match.group(1)) == target_day:
-            vardiya_col = col_idx
-            break
+            day_cols.append(col_idx)
 
-    if vardiya_col is None:
-        print("❌ Hedef gün için sütun bulunamadı")
+    if not day_cols:
         return
+
+    vardiya_col = day_cols[0]              # ilk = vardiya
+    icerik_col = day_cols[1] if len(day_cols) > 1 else None  # ikinci = içerik
 
     # Personel satırını bul
     staff_row = None
@@ -88,30 +85,10 @@ async def main():
             break
 
     if staff_row is None:
-        print("❌ Personel bulunamadı")
         return
 
-    # 🧩 Vardiya hücresi
     vardiya_cell = str(staff_row[vardiya_col]).strip()
-
-    # 📋 İçerik hücresini dinamik bul
-    icerik_cell = ""
-    for col in range(vardiya_col + 1, len(staff_row)):
-        cell_text = str(staff_row[col])
-        if re.search(r'Flight\s*:?', cell_text, re.IGNORECASE):
-            icerik_cell = cell_text.strip()
-            break
-
-    # 🧪 DEBUG — içerik bulunamazsa raporla
-    debug_info = ""
-    if not icerik_cell:
-        debug_info += "⚠️ İÇERİK BULUNAMADI\n"
-        debug_info += f"📍 Vardiya sütunu: {vardiya_col}\n\n"
-        debug_info += "👉 Sağdaki hücreler:\n"
-
-        for col in range(vardiya_col + 1, min(vardiya_col + 6, len(staff_row))):
-            raw_text = str(staff_row[col])
-            debug_info += f"[Sütun {col}] → {raw_text}\n"
+    icerik_cell = str(staff_row[icerik_col]).strip() if icerik_col else ""
 
     # Vardiya bilgisi
     words = vardiya_cell.split()
@@ -120,12 +97,9 @@ async def main():
 
     detay = parse_flights(icerik_cell)
 
-    # 📩 Mesaj oluştur
+    # 📩 MESAJ
     if vardiya.lower() == "off":
-        message = (
-            f"📅 Yarın ({tomorrow.strftime('%d %B')})\n"
-            f"😴 OFF’sun"
-        )
+        message = f"📅 Yarın ({tomorrow.strftime('%d %B')})\n😴 OFF’sun"
     else:
         message = (
             f"📅 Yarın ({tomorrow.strftime('%d %B')})\n"
@@ -141,11 +115,6 @@ async def main():
 
     bot = Bot(token=BOT_TOKEN)
     await bot.send_message(chat_id=CHAT_ID, text=message)
-
-    if debug_info:
-        await bot.send_message(chat_id=CHAT_ID, text=debug_info)
-
-    print("✅ Telegram mesajı gönderildi")
 
 
 asyncio.run(main())
