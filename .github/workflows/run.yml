@@ -20,11 +20,12 @@ jobs:
       - name: Gerekli paketler
         run: |
           python -m pip install --upgrade pip
-          pip install pandas openpyxl python-telegram-bot requests
+          pip install pandas openpyxl python-telegram-bot requests beautifulsoup4
 
-      - name: Vardiya dosyasını indir
+      - name: Vardiya dosyasını indir (otomatik login)
         env:
-          GSS_TOKEN: ${{ secrets.GSS_TOKEN }}
+          GSS_USERNAME: ${{ secrets.GSS_USERNAME }}
+          GSS_PASSWORD: ${{ secrets.GSS_PASSWORD }}
         run: |
           python download_shift.py
 
