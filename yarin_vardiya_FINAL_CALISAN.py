@@ -2,12 +2,13 @@ import os
 import asyncio
 import pandas as pd
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from telegram import Bot
 import re
 
 # ================== AYARLAR ==================
 
-EXCEL_PATH = r"vardiya.xlsx"
+EXCEL_PATH = "vardiya.xlsx"
 STAFF_NAME = "ADEM AKSU"
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -41,6 +42,11 @@ def parse_flights(text):
 
 
 async def main():
+    # 🇹🇷 TÜRKİYE SAATİNE SABİTLE
+    now_tr = datetime.now(ZoneInfo("Europe/Istanbul"))
+    tomorrow = now_tr + timedelta(days=1)
+    target_day = tomorrow.day
+
     raw = pd.read_excel(EXCEL_PATH, header=None)
 
     # STAFF satırını bul
@@ -56,21 +62,20 @@ async def main():
 
     header_row = raw.iloc[header_row_index]
 
-    # İlk tarih sütununu bul
-    first_date_col = None
-    first_day = None
+    # 🎯 HEDEF GÜNÜN SÜTUNUNU BUL (GARANTİLİ YÖNTEM)
+    vardiya_col = None
 
     for col_idx in range(1, len(header_row)):
         match = re.search(r'\b(\d{1,2})\b', str(header_row[col_idx]))
-        if match:
-            first_day = int(match.group(1))
-            first_date_col = col_idx
+        if match and int(match.group(1)) == target_day:
+            vardiya_col = col_idx
             break
 
-    tomorrow = datetime.now() + timedelta(days=1)
-    offset = tomorrow.day - first_day
-    vardiya_col = first_date_col + offset
-    icerik_col = vardiya_col + 1   # 🔴 ASIL KRİTİK NOKTA
+    if vardiya_col is None:
+        print("❌ Hedef gün için sütun bulunamadı")
+        return
+
+    icerik_col = vardiya_col + 1  # içerik her zaman sağ sütun
 
     # Personel satırını bul
     staff_row = None
@@ -115,7 +120,3 @@ async def main():
 
 
 asyncio.run(main())
-
-
-
-
