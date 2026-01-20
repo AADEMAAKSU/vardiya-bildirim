@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, parse_qs
 import hashlib
 from datetime import datetime
-import re
 
 # ================== AYARLAR ==================
 
@@ -18,8 +17,7 @@ AUTHORIZE_URL = (
 
 TOKEN_URL = "https://api-gss.gohub.aero/auth/with-code"
 
-# 🔴 WEB SAYFASI (MESAJLARIM)
-MESSAGES_PAGE = "https://saha.gohub.aero/#!/mesajlarim"
+NOTIFICATION_API = "https://api-gss.gohub.aero/notification-service"
 
 OUTPUT_FILE = "vardiya.xlsx"
 
@@ -73,25 +71,34 @@ if not access_token:
 
 auth_headers = {"Authorization": f"Bearer {access_token}"}
 
-# 5️⃣ MESAJLAR SAYFASINI ÇEK
-page = session.get(MESSAGES_PAGE, headers=auth_headers)
-if page.status_code != 200:
-    raise Exception("❌ Mesajlar sayfası alınamadı")
+# 5️⃣ NOTIFICATION SERVICE → BİLDİRİMLER
+notif_resp = session.get(NOTIFICATION_API, headers=auth_headers)
+if notif_resp.status_code != 200:
+    raise Exception("❌ Notification API alınamadı")
 
-html = page.text
+data = notif_resp.json().get("data", [])
+if not data:
+    raise Exception("❌ Bildirim bulunamadı")
 
-# 6️⃣ TÜM ATTACHMENT LINKLERİNİ BUL
-links = re.findall(
-    r'/correspondence/\d+/attachment/\d+',
-    html
+# 6️⃣ ATTACHMENT OLANLARI BUL
+attachments = [
+    n for n in data
+    if n.get("attachmentId") and n.get("correspondenceId")
+]
+
+if not attachments:
+    raise Exception("❌ Attachment içeren bildirim yok")
+
+# 7️⃣ EN GÜNCEL BİLDİRİM (ilk sıradaki)
+latest = attachments[0]
+
+correspondence_id = latest["correspondenceId"]
+attachment_id = latest["attachmentId"]
+
+download_url = (
+    f"https://api-gss.gohub.aero/"
+    f"correspondence/{correspondence_id}/attachment/{attachment_id}"
 )
-
-if not links:
-    raise Exception("❌ Attachment linki bulunamadı")
-
-# 7️⃣ EN SON (EN GÜNCEL) LİNK
-latest_link = links[-1]
-download_url = "https://api-gss.gohub.aero" + latest_link
 
 print("📎 Kullanılan link:", download_url)
 
@@ -103,7 +110,7 @@ if file_response.status_code != 200:
 with open(OUTPUT_FILE, "wb") as f:
     f.write(file_response.content)
 
-# 9️⃣ KANIT LOG
+# 9️⃣ KANIT
 file_hash = hashlib.md5(file_response.content).hexdigest()
 print("✅ DOSYA İNDİRİLDİ")
 print("📦 HASH:", file_hash)
